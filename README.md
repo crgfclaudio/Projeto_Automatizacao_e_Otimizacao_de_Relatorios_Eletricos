@@ -21,7 +21,7 @@ Este projeto tem como objetivo **automatizar o processamento e a estruturação 
   - `relatorio_anafas_processado_analise_evento.csv`
 
   - relatorio.txt-> arquivo base utilizado
-  - Codigo final que gerar e otimiza os dados do relatorio
+  - conversão_de_relatorio_e_CSV_organizado.py -> Codigo final que gerar e otimiza os dados do relatorio
 ---
 
 ## 🧠 Motivação
