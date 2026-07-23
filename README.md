@@ -22,7 +22,7 @@
 
   - relatorio.txt-> arquivo base utilizado
   - conversão_de_relatorio_e_CSV_organizado.py -> Codigo final que gerar e otimiza os dados do relatorio
--  🗄️ Banco de Dados e Parte Grafica
+- 🗄️ Banco de Dados e Parte Grafica
   - Criação de um Banco de Dados
   - Algumas Consultas Utilizadas
   - Automatizando o processo do relatorio. txt e fazendo a conversão para o Banco de Dados
