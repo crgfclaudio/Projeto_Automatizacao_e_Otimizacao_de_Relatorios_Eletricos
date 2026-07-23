@@ -1,7 +1,7 @@
 # ⚡ Automação e Otimização de Relatórios Elétricos
 
 ### Este projeto tem como objetivo **automatizar o processamento e a estruturação de relatórios técnicos da área elétrica**, convertendo arquivos de texto brutos (.txt) gerados por sistemas  de análise elétrica em **planilhas organizadas (Excel e CSV)** com dados prontos para consulta, filtragem e análise.
-### Devido ao crescimento do arquivo da planilha(EXcel) foi proposto criar um Banco de dados e um DashBoard para visualizar
+### Devido ao crescimento do arquivo da planilha(Excel) foi proposto criar um Banco de dados e um DashBoard para visualizar
 ---
 
 ## 🚀 Funcionalidades
