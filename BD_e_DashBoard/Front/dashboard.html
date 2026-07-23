@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>ANAFAS Enterprise v4.0</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <style>
+        :root { --sidebar-w: 260px; --primary: #1e293b; }
+        body { background: #f1f5f9; font-family: 'Segoe UI', sans-serif; display: flex; min-height: 100vh; }
+        
+        /* Menu Lateral Fixo */
+        .sidebar { width: var(--sidebar-w); height: 100vh; background: var(--primary); color: white; position: fixed; top: 0; left: 0; display: flex; flex-direction: column; z-index: 1000; }
+        
+        /* Área de Conteúdo */
+        .content { margin-left: var(--sidebar-w); width: 100%; padding: 30px; }
+        
+        /* Links do Menu */
+        .nav-link { color: rgba(255,255,255,0.7); padding: 12px 20px; cursor: pointer; transition: 0.2s; display: flex; align-items: center; text-decoration: none; }
+        .nav-link:hover, .nav-link.active { background: rgba(255,255,255,0.1); color: white; border-right: 4px solid #60a5fa; }
+        
+        /* Seções da Página (SPA) */
+        .view-section { display: none; animation: fadeIn 0.4s; }
+        .view-section.active { display: block; }
+        
+        /* Cartões de Estatísticas */
+        .card-stat { border: none; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border-radius: 12px; background: white; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Tela de Carregamento (Loader) */
+        #loader { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 9999; flex-direction: column; justify-content: center; align-items: center; }
+    </style>
+</head>
+<body>
+
+<div id="loader">
+    <div class="spinner-border text-primary" style="width: 4rem; height: 4rem;"></div>
+    <h3 class="mt-3">Processando...</h3>
+    <p class="text-muted">Aguarde a atualização do banco de dados</p>
+</div>
+
+<div class="sidebar">
+    <div class="p-4 border-bottom border-secondary">
+        <h4 class="fw-bold mb-0"><i class="bi bi-shield-check"></i> ANAFAS<span class="text-info">Pro</span></h4>
+        <small class="text-white-50">Versão Enterprise</small>
+    </div>
+    <nav class="nav flex-column py-3">
+        <a class="nav-link active" onclick="nav('dashboard', this)"><i class="bi bi-grid me-2"></i> Dashboard</a>
+        <a class="nav-link" onclick="nav('importar', this)"><i class="bi bi-cloud-upload me-2"></i> Importar TXT</a>
+        <a class="nav-link" onclick="nav('analise', this)"><i class="bi bi-bar-chart-steps me-2"></i> Tabela Análise</a>
+        <a class="nav-link" onclick="nav('brutos', this)"><i class="bi bi-table me-2"></i> Dados Brutos</a>
+        <a class="nav-link" onclick="nav('logs', this)"><i class="bi bi-clock-history me-2"></i> Histórico</a>
+    </nav>
+</div>
+
+<div class="content">
+    
+    <section id="dashboard" class="view-section active">
+        <h3 class="fw-bold mb-4">Visão Geral</h3>
+        <div class="row g-4 mb-4">
+            <div class="col-md-6">
+                <div class="card card-stat p-4 border-start border-4 border-primary">
+                    <h6 class="text-muted text-uppercase fw-bold">Importações Realizadas</h6>
+                    <h2 class="fw-bold mb-0 display-5" id="kpiImports">0</h2>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card card-stat p-4 border-start border-4 border-success">
+                    <h6 class="text-muted text-uppercase fw-bold">Eventos Totais</h6>
+                    <h2 class="fw-bold mb-0 display-5" id="kpiEvents">0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="card card-stat p-4">
+            <h5 class="fw-bold">Top Locais com Falhas</h5>
+            <div style="height: 300px;"><canvas id="chartMain"></canvas></div>
+        </div>
+    </section>
+
+    <section id="importar" class="view-section">
+        <h3 class="fw-bold mb-4">Nova Importação</h3>
+        <div class="card card-stat p-5 text-center">
+            <i class="bi bi-file-earmark-code display-1 text-primary mb-3"></i>
+            <h3>Carregar Relatório .TXT</h3>
+            <p class="text-muted">O sistema processará o arquivo e atualizará o histórico de operações.</p>
+            
+            <div class="d-flex justify-content-center my-4">
+                <input type="file" id="fileInput" class="form-control w-50" accept=".txt">
+            </div>
+            
+            <button class="btn btn-primary px-5 btn-lg" onclick="uploadFile()">
+                <i class="bi bi-play-circle me-2"></i> Iniciar Processamento
+            </button>
+        </div>
+    </section>
+
+    <section id="analise" class="view-section">
+        <div class="d-flex justify-content-between mb-3 align-items-center">
+            <h3 class="fw-bold mb-0">Resumo da Análise</h3>
+            <button class="btn btn-outline-primary btn-sm" onclick="loadAnalise()">
+                <i class="bi bi-arrow-clockwise"></i> Atualizar
+            </button>
+        </div>
+        <div class="card card-stat p-0 overflow-hidden">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>Identificação</th>
+                            <th>Local</th>
+                            <th class="text-end">Icc 3F (A)</th>
+                            <th class="text-end">Zan (Ω)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bodyAnalise">
+                        <tr><td colspan="4" class="text-center text-muted py-3">Carregando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <section id="brutos" class="view-section">
+        <div class="d-flex justify-content-between mb-3 align-items-center">
+            <h3 class="fw-bold mb-0">Dados Detalhados</h3>
+            <div>
+                <button class="btn btn-outline-secondary btn-sm" onclick="pag(-1)">Anterior</button>
+                <button class="btn btn-outline-secondary btn-sm" onclick="pag(1)">Próximo</button>
+            </div>
+        </div>
+        <div class="card card-stat p-0 overflow-hidden">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle table-sm">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>Caso</th>
+                            <th>Falta</th>
+                            <th>Local</th>
+                            <th>Circuito</th>
+                            <th>Fase</th>
+                            <th class="text-end">I (A)</th>
+                            <th class="text-end">V (pu)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bodyBrutos">
+                        <tr><td colspan="7" class="text-center text-muted py-3">Carregando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <section id="logs" class="view-section">
+        <div class="d-flex justify-content-between mb-3 align-items-center">
+            <h3 class="fw-bold mb-0">Histórico de Operações</h3>
+            <button class="btn btn-outline-secondary btn-sm" onclick="loadLogs()">
+                <i class="bi bi-arrow-clockwise"></i> Recarregar
+            </button>
+        </div>
+        <div class="card card-stat p-4">
+            <ul class="list-group list-group-flush" id="logsList">
+                <li class="list-group-item text-muted">Aguardando dados...</li>
+            </ul>
+        </div>
+    </section>
+</div>
+
+<script>
+    const API = 'http://localhost:5000/api';
+    let currentPage = 1;
+
+    // --- NAVEGAÇÃO SPA (Single Page Application) ---
+    function nav(id, el) {
+        // Esconde todas as seções
+        document.querySelectorAll('.view-section').forEach(e => e.classList.remove('active'));
+        // Mostra a seção alvo
+        const target = document.getElementById(id);
+        if(target) target.classList.add('active');
+
+        // Atualiza estilo do menu
+        document.querySelectorAll('.nav-link').forEach(e => e.classList.remove('active'));
+        if(el) el.classList.add('active');
+        
+        // Carrega dados específicos da aba
+        if(id === 'dashboard') loadDash();
+        if(id === 'analise') loadAnalise();
+        if(id === 'brutos') loadBrutos();
+        if(id === 'logs') loadLogs();
+    }
+
+    // --- CARREGAR DASHBOARD ---
+    async function loadDash() {
+        try {
+            const res = await fetch(`${API}/dashboard`);
+            const data = await res.json();
+            document.getElementById('kpiImports').innerText = data.imports;
+            document.getElementById('kpiEvents').innerText = data.events;
+            
+            const ctx = document.getElementById('chartMain').getContext('2d');
+            if(window.myChart) window.myChart.destroy();
+            window.myChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.chart.map(d => d.Localizacao),
+                    datasets: [{ 
+                        label: 'Ocorrências', 
+                        data: data.chart.map(d => d.qtd), 
+                        backgroundColor: '#3b82f6' 
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        } catch(e) { console.error("Erro Dash:", e); }
+    }
+
+    // --- UPLOAD DE ARQUIVO ---
+    async function uploadFile() {
+        const input = document.getElementById('fileInput');
+        if(!input.files[0]) return Swal.fire('Erro', 'Selecione um arquivo .txt primeiro!', 'error');
+        
+        document.getElementById('loader').style.display = 'flex';
+        const formData = new FormData();
+        formData.append('file', input.files[0]);
+
+        try {
+            const res = await fetch(`${API}/upload-txt`, { method: 'POST', body: formData });
+            const data = await res.json();
+            
+            if(!res.ok) throw new Error(data.error || 'Erro desconhecido no servidor');
+            
+            Swal.fire({
+                icon: 'success',
+                title: 'Processamento Concluído!',
+                text: `ID Importação: ${data.id}. Linhas brutas: ${data.rows}`,
+                timer: 3000
+            });
+            
+            // Vai para o dashboard após sucesso
+            // Simula clique no botão dashboard para atualizar visual
+            const dashBtn = document.querySelector("a[onclick*='dashboard']");
+            nav('dashboard', dashBtn);
+
+        } catch(e) {
+            Swal.fire('Erro Crítico', e.message, 'error');
+        } finally {
+            document.getElementById('loader').style.display = 'none';
+        }
+    }
+
+    // --- CARREGAR LOGS (NOVA TABELA) ---
+    async function loadLogs() {
+        try {
+            const res = await fetch(`${API}/logs`);
+            const data = await res.json();
+            const ul = document.getElementById('logsList');
+            ul.innerHTML = '';
+            
+            if(data.length === 0) { 
+                ul.innerHTML = '<li class="list-group-item text-muted">Nenhum histórico encontrado.</li>'; 
+                return; 
+            }
+            
+            data.forEach(l => {
+                // Formata data
+                const dt = l.data_operacao ? new Date(l.data_operacao).toLocaleString() : '-';
+                
+                ul.innerHTML += `
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="badge bg-info text-dark me-2">${l.tipo_operacao}</span> 
+                            ${l.descricao}
+                            <div class="small text-muted" style="font-size: 0.8rem">
+                                Arquivo: ${l.nome_arquivo || 'N/A'}
+                            </div>
+                        </div>
+                        <span class="small text-muted">${dt}</span>
+                    </li>`;
+            });
+        } catch(e) { console.error("Erro Logs:", e); }
+    }
+
+    // --- CARREGAR ANÁLISE ---
+    async function loadAnalise() {
+        try {
+            const res = await fetch(`${API}/dados/analise`);
+            const data = await res.json();
+            const t = document.getElementById('bodyAnalise'); 
+            t.innerHTML = '';
+            if(data.length === 0) { t.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Sem dados</td></tr>'; return; }
+            
+            data.forEach(r => {
+                t.innerHTML += `
+                <tr>
+                    <td>${r.Identificacao}</td>
+                    <td>${r.Localizacao}</td>
+                    <td class="text-end font-monospace">${r.IA_CC3F || '-'}</td>
+                    <td class="text-end font-monospace">${r.Zan_CCFT || '-'}</td>
+                </tr>`;
+            });
+        } catch(e) { console.error("Erro Analise:", e); }
+    }
+
+    // --- CARREGAR BRUTOS ---
+    async function loadBrutos() {
+        try {
+            const res = await fetch(`${API}/dados/brutos?page=${currentPage}`);
+            const data = await res.json();
+            const t = document.getElementById('bodyBrutos'); 
+            t.innerHTML = '';
+            if(data.length === 0) { t.innerHTML = '<tr><td colspan="7" class="text-center text-muted">Sem dados</td></tr>'; return; }
+
+            data.forEach(r => {
+                t.innerHTML += `
+                <tr>
+                    <td>${r.Caso}</td>
+                    <td><span class="badge bg-secondary">${r.Falta}</span></td>
+                    <td>${r.Localizacao}</td>
+                    <td class="small text-muted">${r.Circuito}</td>
+                    <td><span class="badge bg-light text-dark border">${r.Fase}</span></td>
+                    <td class="text-end fw-bold">${r.CorrenteModuloCurto}</td>
+                    <td class="text-end font-monospace">${r.TensaoModuloCurto}</td>
+                </tr>`;
+            });
+        } catch(e) { console.error("Erro Brutos:", e); }
+    }
+
+    // Paginação simples
+    function pag(d) { 
+        if(currentPage + d > 0) { 
+            currentPage += d; 
+            loadBrutos(); 
+        } 
+    }
+
+    // Inicialização: Carrega Dashboard ao abrir
+    loadDash();
+</script>
+
+</body>
+</html>
